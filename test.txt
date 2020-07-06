@@ -1,0 +1,622 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.UI.Extensions;
+using SimpleJSON;
+
+public class WeeklyTopicButtonManager : MonoBehaviour
+{
+    [Header("Panels")]
+    public GameObject WeeklyTopicPanel;
+    public GameObject HandoutPanel;
+    public GameObject HandoutContainer;
+    public GameObject CallPanel;
+    public GameObject CommitmentPanel;
+    public GameObject PowerupPanel;
+    public GameObject PowerupTriedPanel;
+    public GameObject PowerupRemindPanel;
+    public GameObject PrevMeetingPanel;
+    public GameObject PrevAnimationPanel;
+    public GameObject BottomNav;
+
+    [Header("Text Components")]
+    public Text TitleText;
+    public GameObject CurrUsefulTopicText;
+    public GameObject CurrStarTopicText;
+    public GameObject PowerupText1;
+    public GameObject PowerupText2;
+    public GameObject LastUsefulTopicText;
+    public InputField LastUsefulTopicField;
+    public GameObject LastStarTopicText;
+    public GameObject PrevMeetingAnimationTitle;
+    public GameObject PrevMeetingHandoutTitle;
+    public Text CommitmentHeaderText;
+    public GameObject CommitmentAM;
+    public GameObject CommitmentPM;
+    public Text MeetingHeaderText;
+    public Material invalidTextMaterial;
+    public Material validTextMaterial;
+
+    [Header("Main Buttons")]
+    public GameObject HandoutCard;
+    public GameObject CallCard;
+    public GameObject CommitmentCard;
+    public GameObject PowerupCard;
+    public GameObject PUTriedButton;
+    public GameObject PURemindButton;
+    public GameObject PUNotInterestedButton;
+    public GameObject PrevMeetingCard;
+    public GameObject LoadPrevAudioButton;
+    public GameObject PrevMeetingLoadHandoutButton;
+    public GameObject PrevMeetingLoadAnimButton;
+    public Material greenButtonBackground;
+    public Material yellowButtonBackground;
+
+    [Header("Handout Assets")]
+    UniWebView webView;
+
+    [Header("Dropdowns/Headers")]
+    public GameObject PrevTopicDropdownList;
+    public Text PrevTopicDropdownText;
+    public GameObject PrevTopicDropdownParent;
+    public GameObject PrevTopicDropdownPrefab;
+
+    [Header("Stars")]
+    public GameObject[] CallPanelStars;
+    public GameObject[] PrevMeetingStars;
+
+    [HideInInspector]
+    private GameObject currentPanel;
+
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        WeeklyTopicDataManager.Instance.GetTopicData();
+        currentPanel = WeeklyTopicPanel;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+
+    }
+
+    public void PopulateCurrTopicCards()
+    {
+        // TitleText.text += " <i>" + WeeklyTopicDataManager.Instance.currTopicName + "</i>";
+        HandoutCard.GetComponentInChildren<Text>().text +=
+            " <i>" + WeeklyTopicDataManager.Instance.currTopicName + "</i>";
+        CommitmentCard.GetComponentInChildren<Text>().text +=
+            " <i>" + WeeklyTopicDataManager.Instance.currTopicName + "</i>";
+        PowerupCard.GetComponentInChildren<Text>().text +=
+            " <i>" + WeeklyTopicDataManager.Instance.currTopicName + "</i>";
+
+        if (WeeklyTopicDataManager.Instance.currTopicID != null)
+        {
+            if (string.IsNullOrWhiteSpace(WeeklyTopicDataManager.Instance.currHandoutURL))
+            {
+                Destroy(HandoutCard.GetComponent<Button>());
+                HandoutCard.GetComponentsInChildren<SVGImage>()[1].material = greenButtonBackground;
+            }
+            CurrUsefulTopicText.GetComponent<Text>().text =
+                CurrUsefulTopicText.GetComponent<Text>().text.Insert(18,
+                "<i>" + WeeklyTopicDataManager.Instance.currTopicName + "</i>");
+            CurrStarTopicText.GetComponent<Text>().text =
+                CurrStarTopicText.GetComponent<Text>().text.Insert(34,
+                "<i>" + WeeklyTopicDataManager.Instance.currTopicName + "</i>");
+        }
+        else
+        {
+            //WeeklyTopicDataManager.Instance.currVideoNoAnim.SetActive(true);
+            //HandoutCard.GetComponent<Button>().interactable = false;
+            Destroy(HandoutCard.GetComponent<Button>());
+            HandoutCard.GetComponentsInChildren<SVGImage>()[1].material = greenButtonBackground;
+            //CallCard.GetComponent<Button>().interactable = false;
+            Destroy(CallCard.GetComponent<Button>());
+            CallCard.GetComponentsInChildren<SVGImage>()[1].material = greenButtonBackground;
+            //CommitmentCard.GetComponent<Button>().interactable = false;
+            Destroy(CommitmentCard.GetComponent<Button>());
+            CommitmentCard.GetComponentsInChildren<SVGImage>()[1].material = greenButtonBackground;
+            //PowerupCard.GetComponent<Button>().interactable = false;
+            Destroy(PowerupCard.GetComponent<Button>());
+            PowerupCard.GetComponentsInChildren<SVGImage>()[1].material = greenButtonBackground;
+        }
+    }
+
+    public void HandoutCardClicked(bool isCurrentTopic)
+    {
+        currentPanel.SetActive(false);
+        BottomNav.SetActive(false);
+        HandoutPanel.SetActive(true);
+        currentPanel = HandoutPanel;
+
+        webView = HandoutContainer.AddComponent<UniWebView>();
+        webView.ReferenceRectTransform = HandoutContainer.GetComponent<RectTransform>();
+        webView.SetShowSpinnerWhileLoading(true);
+        webView.SetShowToolbar(false);
+        if (isCurrentTopic)
+        {
+            webView.Load(WeeklyTopicDataManager.Instance.currHandoutURL);
+        }
+        else
+        {
+            webView.Load(WeeklyTopicDataManager.Instance.prevHandoutURL);
+        }
+
+        webView.Show();
+    }
+
+    public void CallCardClicked()
+    {
+        WeeklyTopicAnimationManager.Instance.PauseCurrVideo();
+        int weekNum = WeeklyTopicDataManager.Instance.currTopicIndex + 1;
+        if (weekNum != 0)
+        {
+            MeetingHeaderText.text =
+                "Week " + weekNum + ": <i>" + WeeklyTopicDataManager.Instance.currTopicName + "</i>";
+        }
+        currentPanel.SetActive(false);
+        CallPanel.SetActive(true);
+        currentPanel = CallPanel;
+    }
+
+    public void PopulateZoomCard()
+    {
+        DateTime startTime = WeeklyTopicDataManager.Instance.zoomMeetingStart.ToLocalTime();
+        CallCard.GetComponentInChildren<Text>().text =
+            "Next Session: " + "<i>" +
+            startTime.ToString("ddd, d MMM. yyyy h:mmtt ") +
+            WeeklyTopicDataManager.Instance.currentTZ.StandardName +
+            "</i>";
+    }
+
+    public void JoinZoomMeeting()
+    {
+        string uname = WeeklyTopicDataManager.Instance.zoomUname;
+        string meetID = WeeklyTopicDataManager.Instance.zoomMeetingID;
+        string password = WeeklyTopicDataManager.Instance.zoomPassword;
+        Debug.Log("Meeting ID: " + meetID);
+        Debug.Log("Password: " + password);
+        // !string.IsNullOrEmpty(zoomUname)
+        if (!string.IsNullOrEmpty(meetID) && !string.IsNullOrEmpty(password))
+        {
+            Debug.Log("Opening link: " + "https://zoom.us/j/" + meetID + "?pwd=" + password + "&uname=" + uname);
+            // Application.OpenURL("https://pomonacollege.zoom.us/j/7606680119?pwd=eTBCblJsaThuZTErRjJmSDhwSUhvQT09" + uname);
+            Application.OpenURL("https://zoom.us/j/" + meetID + "?pwd=" + password + "&uname=" + uname);
+        }
+    }
+
+    public void LeaveCallFeedbackClicked()
+    {
+        if (WeeklyTopicDataManager.Instance.zoomFeedbackURL != null)
+        {
+            Application.OpenURL(WeeklyTopicDataManager.Instance.zoomFeedbackURL);
+        }
+        else
+        {
+            Debug.Log("Zoom Feedback URL " + WeeklyTopicDataManager.Instance.zoomFeedbackURL + " cannot be opened.");
+        }
+    }
+
+    public void CommitmentCardClicked()
+    {
+        WeeklyTopicAnimationManager.Instance.PauseCurrVideo();
+        int weekNum = WeeklyTopicDataManager.Instance.currTopicIndex + 1;
+        if (weekNum != 0)
+        {
+            CommitmentHeaderText.text =
+                "Week " + weekNum + ": <i>" + WeeklyTopicDataManager.Instance.currTopicName + "</i>";
+        }
+        currentPanel.SetActive(false);
+        CommitmentPanel.SetActive(true);
+        currentPanel = CommitmentPanel;
+    }
+
+    public void CommitmentAMPMToggleClicked()
+    {
+        if (CommitmentAM.activeSelf)
+        {
+            CommitmentAM.SetActive(false);
+            CommitmentPM.SetActive(true);
+            WeeklyTopicDataManager.Instance.isAM = false;
+        }
+        else
+        {
+            CommitmentPM.SetActive(false);
+            CommitmentAM.SetActive(true);
+            WeeklyTopicDataManager.Instance.isAM = true;
+        }
+    }
+
+    public void CommitmentForYouClicked()
+    {
+        WeeklyTopicDataManager.Instance.ParseCommitmentDate();
+
+        if (WeeklyTopicDataManager.Instance.isValidCommitmentDate)
+        {
+            WeeklyTopicDataManager.Instance.SendCommitmentData(false);
+            WeeklyTopicDataManager.Instance.DayField.textComponent.color = Color.black;
+            WeeklyTopicDataManager.Instance.DayField.textComponent.material = validTextMaterial;
+            WeeklyTopicDataManager.Instance.DayField.text = "";
+            WeeklyTopicDataManager.Instance.MonthField.textComponent.color = Color.black;
+            WeeklyTopicDataManager.Instance.MonthField.textComponent.material = validTextMaterial;
+            WeeklyTopicDataManager.Instance.MonthField.text = "";
+            WeeklyTopicDataManager.Instance.YearField.textComponent.color = Color.black;
+            WeeklyTopicDataManager.Instance.YearField.textComponent.material = validTextMaterial;
+            WeeklyTopicDataManager.Instance.YearField.text = "";
+            WeeklyTopicDataManager.Instance.HourField.textComponent.color = Color.black;
+            WeeklyTopicDataManager.Instance.HourField.textComponent.material = validTextMaterial;
+            WeeklyTopicDataManager.Instance.HourField.text = "";
+            WeeklyTopicDataManager.Instance.MinuteField.textComponent.color = Color.black;
+            WeeklyTopicDataManager.Instance.MinuteField.textComponent.material = validTextMaterial;
+            WeeklyTopicDataManager.Instance.MinuteField.text = "";
+            BackToWeeklyTopic();
+        }
+        else
+        {
+            InputFieldError(WeeklyTopicDataManager.Instance.DayField);
+            InputFieldError(WeeklyTopicDataManager.Instance.MonthField);
+            InputFieldError(WeeklyTopicDataManager.Instance.YearField);
+            InputFieldError(WeeklyTopicDataManager.Instance.HourField);
+            InputFieldError(WeeklyTopicDataManager.Instance.MinuteField);
+        }
+
+    }
+
+    public void CommitmentShareClicked()
+    {
+        WeeklyTopicDataManager.Instance.SendCommitmentData(true);
+        BackToWeeklyTopic();
+    }
+
+    public void PowerupCardClicked()
+    {
+        WeeklyTopicAnimationManager.Instance.PauseCurrVideo();
+        WeeklyTopicDataManager.Instance.GetPowerupData();
+        currentPanel.SetActive(false);
+        PowerupPanel.SetActive(true);
+        currentPanel = PowerupPanel;
+    }
+
+    public void PopulatePowerupText()
+    {
+        PowerupText1.GetComponent<Text>().text = WeeklyTopicDataManager.Instance.powerUp1;
+        PowerupText2.GetComponent<Text>().text = WeeklyTopicDataManager.Instance.powerUp2;
+        if (WeeklyTopicDataManager.Instance.powerUpID == null )
+        {
+            PUTriedButton.GetComponent<Button>().interactable = false;
+            PURemindButton.GetComponent<Button>().interactable = false;
+            PUNotInterestedButton.GetComponent<Button>().interactable = false;
+        }
+    }
+
+    public void SendPowerupResponseClicked(int id)
+    {
+
+
+        // update with correct popups
+        if (id == 0)
+        {
+            Debug.Log("Tried It Pressed!");
+            WeeklyTopicDataManager.Instance.SendPUResponse(true);
+            BottomNav.SetActive(false);
+            currentPanel.SetActive(false);
+            PowerupTriedPanel.SetActive(true);
+            currentPanel = PowerupTriedPanel;
+        }
+        else if (id == 1)
+        {
+            Debug.Log("Remind me pressed!");
+            BottomNav.SetActive(false);
+            currentPanel.SetActive(false);
+            PowerupRemindPanel.SetActive(true);
+            currentPanel = PowerupRemindPanel;
+        }
+        else
+        {
+            Debug.Log("Not interested pressed!");
+            WeeklyTopicDataManager.Instance.SendPUResponse(false);
+            BackToWeeklyTopic();
+        }
+    }
+
+    public void PrevMeetingCardClicked()
+    {
+        WeeklyTopicAnimationManager.Instance.PauseCurrVideo();
+        // PopulateDropdown();
+        PrevTopicDropdownText.text =
+            "Week " + (WeeklyTopicDataManager.Instance.prevTopicStartIndex + 1) + ": <i>" +
+            WeeklyTopicDataManager.Instance.prevTopicName + "</i>";
+        currentPanel.SetActive(false);
+        PrevMeetingPanel.SetActive(true);
+        currentPanel = PrevMeetingPanel;
+    }
+
+    public void PopulatePrevTopicCards()
+    {
+        Debug.Log("Populating previous topics...");
+        PrevMeetingCard.GetComponentInChildren<Text>().text = "Previous Session: " +
+            " <i>" + WeeklyTopicDataManager.Instance.prevTopicName + "</i>";
+
+        if (WeeklyTopicDataManager.Instance.prevTopicID != null)
+        {
+            PrevMeetingAnimationTitle.GetComponentInChildren<Text>().text = "Intro Animation: " +
+                " <i>" + WeeklyTopicDataManager.Instance.prevTopicName + "</i>";
+            PrevMeetingHandoutTitle.GetComponentInChildren<Text>().text = "Handout: " +
+                " <i>" + WeeklyTopicDataManager.Instance.prevTopicName + "</i>";
+            LastStarTopicText.GetComponent<Text>().text = "How helpful is the topic " +
+                "<i>" + WeeklyTopicDataManager.Instance.prevTopicName + "</i>" +
+                "?";
+            LastUsefulTopicText.GetComponent<Text>().text = "Write a review of the topic " +
+                "<i>" + WeeklyTopicDataManager.Instance.prevTopicName + "</i>";
+        }
+        else
+        {
+            Destroy(PrevMeetingCard.GetComponent<Button>());
+            PrevMeetingCard.GetComponentsInChildren<SVGImage>()[1].material = greenButtonBackground;
+            //PrevMeetingCard.GetComponent<Button>().interactable = false;
+        }
+    }
+
+    public void PrevMeetingAudioButtonHandler()
+    {
+        if (string.IsNullOrWhiteSpace(WeeklyTopicDataManager.Instance.prevZoomAudioURL))
+        {
+            LoadPrevAudioButton.GetComponent<Button>().interactable = false;
+        }
+        else
+        {
+            LoadPrevAudioButton.GetComponent<Button>().interactable = true;
+        }
+    }
+
+    public void PrevMeetingHandoutButtonHandler()
+    {
+        if (string.IsNullOrWhiteSpace(WeeklyTopicDataManager.Instance.prevHandoutURL))
+        {
+            PrevMeetingLoadHandoutButton.GetComponent<Button>().interactable = false;
+        }
+        else
+        {
+            PrevMeetingLoadHandoutButton.GetComponent<Button>().interactable = true;
+        }
+    }
+
+    public void PrevMeetingAnimButtonHandler()
+    {
+        Debug.Log("Prev anim button handler running...");
+        if (string.IsNullOrWhiteSpace(WeeklyTopicDataManager.Instance.prevAnimURL))
+        {
+            PrevMeetingLoadAnimButton.GetComponent<Button>().interactable = false;
+        }
+        else
+        {
+            PrevMeetingLoadAnimButton.GetComponent<Button>().interactable = true;
+        }
+    }
+
+
+    public void PopulateDropdown()
+    {
+        if (!WeeklyTopicDataManager.Instance.isDropDownPopulated)
+        {
+            WeeklyTopicDataManager.Instance.isDropDownPopulated = true;
+
+            if (WeeklyTopicDataManager.Instance.topicArray.Count != 0)
+            {
+                Destroy(PrevTopicDropdownParent.transform.GetChild(0).gameObject);
+
+                int index = WeeklyTopicDataManager.Instance.prevTopicStartIndex;
+                // foreach (JSONNode topic in  WeeklyTopicDataManager.Instance.topicArray)
+                // don't load current week
+                for (int i = (index); i >= 0; i--)
+                {
+                    int x = i;
+                    Debug.Log("Prev week index for dropdown: " + i);
+                    JSONNode topic = WeeklyTopicDataManager.Instance.topicArray[i];
+                    GameObject prevTopicDropdownObject = Instantiate(PrevTopicDropdownPrefab);
+                    prevTopicDropdownObject.SetActive(true);
+                    prevTopicDropdownObject.transform.position = PrevTopicDropdownParent.transform.position;
+                    prevTopicDropdownObject.transform.SetParent(PrevTopicDropdownParent.transform);
+                    prevTopicDropdownObject.transform.localScale = new Vector3(1, 1, 1);
+                    prevTopicDropdownObject.GetComponentInChildren<Text>().text =
+                        "Week " + (i + 1) + ": <i>" + topic["event_name"] + "</i>";
+
+                    // adding listener for GetSpecific... not working
+                    // need to set text for selected meeting in dropdown - done tentatively in GetSpecific...
+                    prevTopicDropdownObject.GetComponentInChildren<Button>().onClick.AddListener(() =>
+                        {
+                            WeeklyTopicDataManager.Instance.GetSpecificTopicData(x);
+                            WeeklyTopicDataManager.Instance.GetAnimData(x);
+                            SetPrevMeetingActiveStars(0);
+                            LastUsefulTopicField.text = "";
+                            PrevMeetingDropdownClicked();
+                        }
+                    );
+                }
+            }
+        }
+    }
+
+    public void PrevMeetingDropdownClicked()
+    {
+        // bool show;
+        Transform trsfm = PrevTopicDropdownParent.transform;
+
+        PopulateDropdown();
+
+        if (WeeklyTopicDataManager.Instance.isDropdownEnabled)
+        {
+            // show = false;
+            PrevTopicDropdownList.SetActive(false);
+            WeeklyTopicDataManager.Instance.isDropdownEnabled = false;
+        }
+        else
+        {
+            // show = true;
+            PrevTopicDropdownList.SetActive(true);
+            WeeklyTopicDataManager.Instance.isDropdownEnabled = true;
+        }
+    }
+
+    public void BackToWeeklyTopic()
+    {
+        currentPanel.SetActive(false);
+        BottomNav.SetActive(true);
+        WeeklyTopicPanel.SetActive(true);
+        WeeklyTopicAnimationManager.Instance.PlayCurrAnim();
+        currentPanel = WeeklyTopicPanel;
+    }
+
+    public void BackToWeeklyTopicFromHandout()
+    {
+        currentPanel.SetActive(false);
+
+        if(HandoutContainer.GetComponent<UniWebView>() != null)
+        {
+            Destroy(HandoutContainer.GetComponent<UniWebView>());
+        }
+
+        if (WeeklyTopicDataManager.Instance.isDropdownEnabled)
+        {
+            PrevMeetingDropdownClicked();
+        }
+
+        BottomNav.SetActive(true);
+        WeeklyTopicPanel.SetActive(true);
+        WeeklyTopicAnimationManager.Instance.PlayCurrAnim();
+        currentPanel = WeeklyTopicPanel;
+    }
+
+    // used for the special case where dropdown is open when hitting back button
+    public void BatckToWeeklyTopicDropdown()
+    {
+        currentPanel.SetActive(false);
+        if (WeeklyTopicDataManager.Instance.isDropdownEnabled)
+        {
+            PrevMeetingDropdownClicked();
+        }
+        if (string.IsNullOrWhiteSpace(WeeklyTopicDataManager.Instance.currAnimURL))
+        {
+            WeeklyTopicAnimationManager.Instance.CurrPlayButton.SetActive(false);
+        }
+        BottomNav.SetActive(true);
+        WeeklyTopicPanel.SetActive(true);
+        WeeklyTopicAnimationManager.Instance.PlayCurrAnim();
+        currentPanel = WeeklyTopicPanel;
+    }
+
+    // return from prev animation -> prev meetings
+    public void BackToPrevMeeting()
+    {
+        currentPanel.SetActive(false);
+        if (WeeklyTopicDataManager.Instance.isDropdownEnabled)
+        {
+            PrevMeetingDropdownClicked();
+        }
+        PrevMeetingPanel.SetActive(true);
+        currentPanel = PrevMeetingPanel;
+    }
+
+    public void LeaveTopicFeedback(bool isCurrentTopic)
+    {
+        WeeklyTopicDataManager.Instance.SendTopicFeedback(isCurrentTopic);
+        BackToWeeklyTopic();
+    }
+
+    public void PrevAnimationCardClicked()
+    {
+        currentPanel.SetActive(false);
+        PrevMeetingDropdownClicked();
+        PrevAnimationPanel.SetActive(true);
+        WeeklyTopicAnimationManager.Instance.PlayPrevAnim();
+        currentPanel = PrevAnimationPanel;
+    }
+
+    public void OpenZoomAudioURL()
+    {
+        Application.OpenURL(WeeklyTopicDataManager.Instance.prevZoomAudioURL);
+    }
+
+    public void SetCallActiveStars(int numStars)
+    {
+        WeeklyTopicDataManager.Instance.callStarRating = numStars;
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (i < numStars)
+            {
+                CallPanelStars[i].SetActive(true);
+            }
+            else
+            {
+                CallPanelStars[i].SetActive(false);
+            }
+        }
+    }
+
+    public void SetPrevMeetingActiveStars(int numStars)
+    {
+        WeeklyTopicDataManager.Instance.prevMeetingStarRating = numStars;
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (i < numStars)
+            {
+                PrevMeetingStars[i].SetActive(true);
+            }
+            else
+            {
+                PrevMeetingStars[i].SetActive(false);
+            }
+        }
+    }
+
+    void InputFieldError(InputField inputField)
+    {
+        inputField.textComponent.color = Color.red;
+        inputField.textComponent.material = invalidTextMaterial;
+        //inputField.placeholder.color = Color.red;
+        StartCoroutine(Jerk(inputField.GetComponent<RectTransform>()));
+    }
+
+    IEnumerator Jerk(RectTransform transform)
+    {
+        Vector3 originalPos = transform.anchoredPosition;
+        float i = 0;
+        float rate = 1/0.05f;
+
+        Vector3 endPosition = originalPos + new Vector3(20, 0, 0);
+
+        while(i < 1)
+        {
+            i += Time.deltaTime * rate;
+            transform.anchoredPosition = Vector3.Lerp(originalPos, endPosition, i);
+            yield return 0;
+        }
+
+        Vector3 newPos = transform.anchoredPosition;
+        endPosition = originalPos + new Vector3(-20, 0, 0);
+        i = 0;
+
+        while (i < 1)
+        {
+            i += Time.deltaTime * rate;
+            transform.anchoredPosition = Vector3.Lerp(newPos, endPosition, i);
+            yield return 0;
+        }
+
+        newPos = transform.anchoredPosition;
+        i = 0;
+
+        while (i < 1)
+        {
+            i += Time.deltaTime * rate;
+            transform.anchoredPosition = Vector3.Lerp(newPos, originalPos, i);
+            yield return 0;
+        }
+    }
+}
